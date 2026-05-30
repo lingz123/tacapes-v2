@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tacapes &mdash; fund</title>
+  <script src="/static/htmx.min.js"></script>
+  <style>
+    :root { --bg:#0f1419; --panel:#161c24; --line:#26303c; --fg:#d6dde6;
+            --muted:#7d8794; --cyan:#3fb6c4; --ok:#46c267; --warn:#d8b13a;
+            --err:#e0564f; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--fg);
+           font:14px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+           padding:24px; max-width:1100px; margin:0 auto; }
+    header { display:flex; align-items:baseline; gap:12px; margin-bottom:18px;
+             border-bottom:1px solid var(--line); padding-bottom:12px; }
+    h1 { color:var(--cyan); font-size:22px; margin:0; letter-spacing:1px; }
+    h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px;
+         color:var(--cyan); margin:22px 0 8px; }
+    h3 { font-size:12px; text-transform:uppercase; letter-spacing:1px;
+         color:var(--muted); margin:16px 0 6px; }
+    .muted { color:var(--muted); }
+    .err { color:var(--err); }
+    .tk { font-weight:bold; color:#fff; }
+    .big { font-size:18px; font-weight:bold; color:#fff; }
+    .card, .proposal, .memo, .new-thesis, #activity {
+      background:var(--panel); border:1px solid var(--line); border-radius:8px;
+      padding:12px 14px; }
+    .card { margin-bottom:6px; }
+    table { width:100%; border-collapse:collapse; margin:4px 0 8px; }
+    th { text-align:left; color:var(--muted); font-weight:normal;
+         border-bottom:1px solid var(--line); padding:4px 8px; font-size:12px; }
+    td { padding:5px 8px; border-bottom:1px solid var(--line); }
+    .actions { white-space:nowrap; }
+    .conv-1, .conv-2 { color:var(--err); }
+    .conv-3 { color:var(--warn); }
+    .conv-4, .conv-5 { color:var(--ok); }
+    .act-new_buy, .act-add { color:var(--ok); }
+    .act-trim { color:var(--warn); }
+    .act-exit { color:var(--err); }
+    .act-hold, .act-new_watch { color:var(--muted); }
+    button { background:var(--cyan); color:#06222a; border:0; border-radius:5px;
+             padding:4px 10px; font:inherit; font-weight:bold; cursor:pointer; }
+    button.ghost { background:transparent; color:var(--muted);
+                   border:1px solid var(--line); }
+    .lnk { color:var(--cyan); cursor:pointer; text-decoration:underline;
+           margin-right:8px; }
+    input { background:var(--bg); color:var(--fg); border:1px solid var(--line);
+            border-radius:5px; padding:5px 8px; font:inherit; }
+    input[name=statement] { width:48%; }
+    .new-thesis { margin-top:18px; }
+    .new-thesis form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .job { padding:4px 0; border-bottom:1px solid var(--line); }
+    .job:last-child { border-bottom:0; }
+    .badge { display:inline-block; min-width:62px; text-align:center;
+             border-radius:4px; padding:1px 6px; font-size:11px;
+             text-transform:uppercase; background:var(--line); }
+    .badge-running { background:var(--warn); color:#1a1400; }
+    .badge-done { background:var(--ok); color:#06220f; }
+    .badge-failed { background:var(--err); color:#2a0908; }
+    .proposal { margin-top:10px; border-color:var(--cyan); }
+    #memo-panel:empty { display:none; }
+    #memo-panel { margin-top:10px; }
+    .memo-head { display:flex; justify-content:space-between; align-items:center; }
+    .breakers li { color:var(--warn); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>tacapes</h1>
+    <span class="muted">the book &mdash; local dashboard</span>
+  </header>
+
+  {% include "_book.html" %}
+
+  <div id="memo-panel"></div>
+
+  <section class="new-thesis">
+    <h2>New thesis</h2>
+    <form hx-post="/thesis" hx-target="#activity" hx-swap="innerHTML">
+      <input type="text" name="statement" placeholder="investment thesis (&ge;20 chars)…" required>
+      <input type="number" name="budget" value="20000" step="1000" min="1" title="budget USD">
+      <input type="number" name="max_positions" value="5" min="1" title="max positions">
+      <button type="submit">Run</button>
+    </form>
+    <p class="muted">No fund yet &rarr; cold start. A fund already exists &rarr; an incremental proposal.</p>
+  </section>
+
+  <section>
+    <h2>Activity</h2>
+    <div id="activity" hx-get="/jobs" hx-trigger="load, every 3s" hx-swap="innerHTML">
+      {% include "_jobs.html" %}
+    </div>
+  </section>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% if memo %}
+<div class="memo">
+  <div class="memo-head">
+    <h2>{{ ticker }} &mdash; memo</h2>
+    <button class="ghost" onclick="document.getElementById('memo-panel').innerHTML=''">close</button>
+  </div>
+  <p><strong>{{ memo.thesis_one_liner }}</strong></p>
+  <p class="muted">conviction {{ memo.conviction }}/5 &middot; {{ memo.thesis_alignment }}</p>
+  <p>{{ memo.reconciliation_notes }}</p>
+
+  <h3>Drivers</h3>
+  <ul>{% for d in memo.drivers %}
+    <li><strong>{{ d.name }}</strong> <span class="muted">({{ d.importance }})</span> &mdash; {{ d.description }}</li>
+  {% endfor %}</ul>
+
+  <h3>Risks</h3>
+  <ul>{% for r in memo.risks %}
+    <li><strong>{{ r.name }}</strong> <span class="muted">({{ r.severity }} severity / {{ r.likelihood }} likelihood)</span> &mdash; {{ r.description }}</li>
+  {% endfor %}</ul>
+
+  <h3>Thesis breakers</h3>
+  <ul class="breakers">{% for b in memo.thesis_breakers %}<li>{{ b }}</li>{% endfor %}</ul>
+
+  <h3>Valuation</h3>
+  <table>
+    <thead><tr><th>Scenario</th><th>Price target</th><th>Methodology</th></tr></thead>
+    <tbody>
+    {% for s in [memo.valuation.bear, memo.valuation.base, memo.valuation.bull, memo.valuation.current] %}
+      <tr>
+        <td>{{ s.label }}</td>
+        <td>{% if s.price_target is not none %}${{ "%.2f"|format(s.price_target) }}{% else %}&mdash;{% endif %}</td>
+        <td class="muted">{{ s.methodology }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="muted">no memo found for {{ ticker }}</p>
+{% endif %}
