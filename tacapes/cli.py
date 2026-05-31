@@ -436,9 +436,12 @@ def dashboard(
 ) -> None:
     """Launch the local web dashboard (FastAPI + HTMX on 127.0.0.1:8732)."""
     load_dotenv()
-    import uvicorn
+    import uvicorn  # noqa: PLC0415
 
-    from .dashboard.app import create_app
+    from .dashboard import bootstrap_db  # noqa: PLC0415
+    from .dashboard.app import create_app  # noqa: PLC0415
+
+    bootstrap_db()
 
     print_banner()
     console.print(
