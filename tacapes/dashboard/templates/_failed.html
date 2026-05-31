@@ -1,1 +1,7 @@
-<div class="failed-panel">this run failed.</div>
+<div class="failed-panel">
+  <p>This run failed.</p>
+  <form method="post" action="/missions/{{ m.id }}/delete"
+        onsubmit="return confirm('Delete this mission?')">
+    <button type="submit" class="btn btn-danger">delete</button>
+  </form>
+</div>

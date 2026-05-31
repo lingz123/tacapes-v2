@@ -232,3 +232,25 @@ def test_status_endpoint_returns_spinner_when_running(client, session):
     assert r.status_code == 200
     assert "HX-Redirect" not in r.headers
     assert "in progress" in r.text.lower()
+
+
+def test_mission_detail_failed_shows_simple_panel(client, session):
+    row = Mission(
+        statement="Test " * 10, budget_usd=Decimal("20000"),
+        max_positions=2, max_position_pct=Decimal("0.4"),
+        horizon_months=12, sectors_excluded=[], allow_shorts=False,
+        status=MissionStatus.failed,
+        created_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+        error_message="RuntimeError: pipeline blew up",
+    )
+    session.add(row); session.commit()
+    r = client.get(f"/missions/{row.id}")
+    assert r.status_code == 200
+    body = r.text.lower()
+    assert "this run failed" in body
+    # Per spec: no traceback, no reason shown.
+    assert "runtimeerror" not in body
+    assert "blew up" not in body
+    # Delete button is visible on failed runs.
+    assert "delete" in body
