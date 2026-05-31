@@ -213,7 +213,12 @@ def register(app: FastAPI) -> None:
                 content="", headers={"HX-Redirect": f"/missions/{mid}"}
             )
         return HTMLResponse(
-            '<div class="muted"><span class="spinner"></span> in progress…</div>'
+            f'<div id="status-poll" '
+            f'hx-get="/missions/{mid}/status" '
+            f'hx-trigger="every 3s" '
+            f'hx-swap="outerHTML">'
+            f'<div class="muted"><span class="spinner"></span> in progress…</div>'
+            f'</div>'
         )
 
     @app.post("/missions/{mission_id}/delete")

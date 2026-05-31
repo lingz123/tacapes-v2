@@ -294,3 +294,22 @@ def test_delete_running_mission_returns_409(client, session):
     session.add(row); session.commit()
     r = client.post(f"/missions/{row.id}/delete", follow_redirects=False)
     assert r.status_code == 409
+
+
+def test_status_endpoint_running_response_includes_polling_attrs(client, session):
+    """Regression: the in-progress fragment must re-include hx-get/hx-trigger
+    so HTMX keeps polling. Without this, the spinner shows forever after the
+    first tick."""
+    row = Mission(
+        statement="Test " * 10, budget_usd=Decimal("20000"),
+        max_positions=2, max_position_pct=Decimal("0.4"),
+        horizon_months=12, sectors_excluded=[], allow_shorts=False,
+        status=MissionStatus.running, created_at=datetime.now(UTC),
+        started_at=datetime.now(UTC),
+    )
+    session.add(row); session.commit()
+    r = client.get(f"/missions/{row.id}/status")
+    assert r.status_code == 200
+    assert 'hx-get=' in r.text
+    assert 'hx-trigger=' in r.text
+    assert "every 3s" in r.text
