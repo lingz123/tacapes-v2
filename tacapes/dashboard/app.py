@@ -62,6 +62,11 @@ def create_app(*, job_runner: Any | None = None) -> FastAPI:
     from . import routes
     routes.register(app)
 
+    # JSON API. Registered before the SPA fallback so /api/* never falls
+    # through to index.html.
+    from .api import routes as api_routes
+    api_routes.register(app)
+
     # SPA fallback. Only active when `pnpm build` has produced web/dist/.
     # Until Phase 6 these only catch unmatched paths (e.g. /app, /missions
     # routes the React Router knows about that Jinja doesn't); after Phase 6
