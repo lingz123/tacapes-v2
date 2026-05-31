@@ -20,10 +20,13 @@ def bootstrap_db() -> None:
         )
         raise SystemExit(2)
 
-    # Run alembic upgrade head from the project root.
+    # Run alembic upgrade head from the project root. Use sys.executable -m
+    # alembic so we hit the venv's Python (which has the right SQLAlchemy +
+    # supports `X | None` annotations at runtime), not whatever `alembic` on
+    # PATH resolves to (which may be a system Python 3.9).
     repo_root = Path(__file__).resolve().parents[2]
     result = subprocess.run(
-        ["alembic", "upgrade", "head"],
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
         cwd=str(repo_root),
         capture_output=True,
         text=True,
