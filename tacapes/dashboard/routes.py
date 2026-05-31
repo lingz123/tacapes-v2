@@ -4,7 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 
 from . import prices
@@ -138,6 +138,60 @@ def register(app: FastAPI) -> None:
             "pnl_per_position": pnl_per_position,
             "chosen": chosen,
         })
+
+    @app.post("/missions")
+    def post_missions(
+        request: Request,
+        statement: str = Form(...),
+        budget_usd: float = Form(...),
+        max_positions: int = Form(...),
+        max_position_pct: float = Form(...),
+        horizon_months: int = Form(...),
+        sectors_excluded: str = Form(""),
+        allow_shorts: str | None = Form(None),
+    ) -> Any:
+        from decimal import Decimal
+        from fastapi import HTTPException
+        from fastapi.responses import RedirectResponse
+        from pydantic import ValidationError
+        from ..schemas import Mission as PMission, MissionConstraints
+        from .db.repo import insert_mission
+        from .runners import make_mission_job
+
+        sectors = [s.strip() for s in sectors_excluded.split(",") if s.strip()]
+        try:
+            constraints = MissionConstraints(
+                max_position_pct=max_position_pct,
+                max_positions=max_positions,
+                sectors_excluded=sectors,
+                allow_shorts=bool(allow_shorts),
+                time_horizon_months=horizon_months,
+            )
+            PMission(statement=statement, budget_usd=budget_usd, constraints=constraints)
+        except ValidationError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        with session_scope() as session:
+            row = insert_mission(
+                session,
+                statement=statement,
+                budget_usd=Decimal(str(budget_usd)),
+                max_positions=max_positions,
+                max_position_pct=Decimal(str(max_position_pct)),
+                horizon_months=horizon_months,
+                sectors_excluded=sectors,
+                allow_shorts=bool(allow_shorts),
+            )
+            session.flush()
+            mission_id = row.id
+
+        runner = request.app.state.job_runner
+        runner.submit(
+            kind="mission",
+            target=statement[:80],
+            fn=make_mission_job(mission_id),
+        )
+        return RedirectResponse(f"/missions/{mission_id}", status_code=303)
 
     @app.post("/prices/refresh")
     def prices_refresh() -> Any:

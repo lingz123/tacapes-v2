@@ -138,3 +138,54 @@ def test_mission_new_renders_form(client):
                   "max_position_pct", "horizon_months",
                   "sectors_excluded", "allow_shorts"):
         assert field in body
+
+
+def test_post_missions_validates_and_enqueues(client, session):
+    """The sync fake JobRunner will run the job immediately, so we patch the
+    pipeline-invocation seam to return a known final state."""
+    from tacapes.dashboard import runners
+
+    payload = {
+        "statement": "Buy nuclear names benefiting from AI/data center demand " * 2,
+        "budget_usd": "20000",
+        "max_positions": "2",
+        "max_position_pct": "0.4",
+        "horizon_months": "12",
+        "sectors_excluded": "",
+        "allow_shorts": "1",
+    }
+    fake_final = {
+        "decomposition": {"sub_themes": []},
+        "subtheme_assessments": {},
+        "shortlist": {"candidates": []},
+        "ta_outputs": {},
+        "memos": {},
+        "portfolio": {
+            "mission_id": "x", "mode": "cold_start", "total_budget_usd": 20000,
+            "positions": [], "correlation_map": [], "cash_reserve_pct": 1.0,
+            "rationale": "all cash",
+        },
+    }
+    with patch.object(runners, "_invoke_pipeline", return_value=fake_final), \
+         patch.object(prices, "snapshot_entry_price", return_value=(None, None)):
+        r = client.post("/missions", data=payload, follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"].startswith("/missions/")
+
+    with session_scope() as s:
+        rows = s.query(Mission).all()
+        assert len(rows) == 1
+        assert rows[0].allow_shorts is True
+        # Sync JobRunner ran the job synchronously → done.
+        assert rows[0].status == MissionStatus.done
+
+
+def test_post_missions_rejects_short_statement(client):
+    r = client.post("/missions", data={
+        "statement": "too short",
+        "budget_usd": "20000",
+        "max_positions": "2",
+        "max_position_pct": "0.4",
+        "horizon_months": "12",
+    }, follow_redirects=False)
+    assert r.status_code == 400
