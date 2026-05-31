@@ -18,5 +18,13 @@
       </span>
     {% else %}—{% endif %}
   </td>
-  <td><a href="/missions/{{ m.id }}" class="btn">open</a></td>
+  <td>
+    <a href="/missions/{{ m.id }}" class="btn">open</a>
+    {% if m.status.value != "running" %}
+      <form method="post" action="/missions/{{ m.id }}/delete" style="display:inline"
+            onsubmit="return confirm('Delete this mission?')">
+        <button type="submit" class="btn btn-danger">delete</button>
+      </form>
+    {% endif %}
+  </td>
 </tr>

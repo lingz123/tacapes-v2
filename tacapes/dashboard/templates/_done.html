@@ -93,3 +93,10 @@
     <p class="muted">cash reserve: {{ "%.1f"|format(m.portfolio_json["cash_reserve_pct"] * 100) }}%</p>
   {% endif %}
 </section>
+
+<section>
+  <form method="post" action="/missions/{{ m.id }}/delete"
+        onsubmit="return confirm('Delete this mission?')">
+    <button type="submit" class="btn btn-danger">delete this mission</button>
+  </form>
+</section>

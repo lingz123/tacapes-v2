@@ -216,6 +216,30 @@ def register(app: FastAPI) -> None:
             '<div class="muted"><span class="spinner"></span> in progress…</div>'
         )
 
+    @app.post("/missions/{mission_id}/delete")
+    def delete_mission_route(mission_id: str) -> Any:
+        import shutil
+        import uuid
+        from fastapi import HTTPException
+        from fastapi.responses import RedirectResponse
+        from ..config import tacapes_home
+        from .db.repo import delete_mission
+        try:
+            mid = uuid.UUID(mission_id)
+        except ValueError:
+            raise HTTPException(status_code=404)
+        with session_scope() as session:
+            m = session.get(Mission, mid)
+            if m is None:
+                raise HTTPException(status_code=404)
+            if m.status.value == "running":
+                raise HTTPException(status_code=409, detail="cannot delete a running mission")
+            delete_mission(session, mid)
+        folder = tacapes_home() / "portfolios" / str(mid)
+        if folder.exists():
+            shutil.rmtree(folder, ignore_errors=True)
+        return RedirectResponse("/", status_code=303)
+
     @app.post("/prices/refresh")
     def prices_refresh() -> Any:
         from fastapi.responses import RedirectResponse

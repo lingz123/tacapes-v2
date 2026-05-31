@@ -254,3 +254,43 @@ def test_mission_detail_failed_shows_simple_panel(client, session):
     assert "blew up" not in body
     # Delete button is visible on failed runs.
     assert "delete" in body
+
+
+def test_delete_mission_removes_row_and_positions(client, session, tmp_path, monkeypatch):
+    # Point tacapes_home at tmp_path so we exercise the folder cleanup safely.
+    from tacapes import config
+    monkeypatch.setattr(config, "tacapes_home", lambda: tmp_path)
+
+    row = _insert_done_mission(
+        session, statement="Test " * 10,
+        positions=[{"ticker": "NRG", "weight_pct": 1.0, "notional_usd": 20000,
+                    "entry_price": 100, "rationale": "t"}],
+    )
+    session.commit()
+    mission_id = row.id
+
+    folder = tmp_path / "portfolios" / str(mission_id)
+    folder.mkdir(parents=True)
+    (folder / "mission.json").write_text("{}")
+
+    r = client.post(f"/missions/{mission_id}/delete", follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] == "/"
+
+    with session_scope() as s:
+        assert s.get(Mission, mission_id) is None
+        assert s.query(Position).filter_by(mission_id=mission_id).count() == 0
+    assert not folder.exists()
+
+
+def test_delete_running_mission_returns_409(client, session):
+    row = Mission(
+        statement="Test " * 10, budget_usd=Decimal("20000"),
+        max_positions=2, max_position_pct=Decimal("0.4"),
+        horizon_months=12, sectors_excluded=[], allow_shorts=False,
+        status=MissionStatus.running, created_at=datetime.now(UTC),
+        started_at=datetime.now(UTC),
+    )
+    session.add(row); session.commit()
+    r = client.post(f"/missions/{row.id}/delete", follow_redirects=False)
+    assert r.status_code == 409
