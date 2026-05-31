@@ -42,3 +42,15 @@ def bootstrap_db() -> None:
         reset = reset_orphaned_running(session)
         if reset:
             log.info("startup recovery: reset %d orphaned running mission(s)", reset)
+
+    # First-launch backfill of existing ~/.tacapes/portfolios/.
+    from .backfill import backfill_from_disk
+    from .db.repo import list_missions
+    from ..config import tacapes_home
+
+    with session_scope() as session:
+        if not list_missions(session):
+            portfolios = tacapes_home() / "portfolios"
+            log.info("missions table empty; backfilling from %s", portfolios)
+            n = backfill_from_disk(session, portfolios)
+            log.info("backfill: inserted %d mission(s)", n)
