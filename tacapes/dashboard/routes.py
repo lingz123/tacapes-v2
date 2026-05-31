@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 
 from . import prices
 from .db import session_scope
+from .db.models import Mission
 from .db.repo import list_missions
 
 
@@ -192,6 +193,28 @@ def register(app: FastAPI) -> None:
             fn=make_mission_job(mission_id),
         )
         return RedirectResponse(f"/missions/{mission_id}", status_code=303)
+
+    @app.get("/missions/{mission_id}/status", response_class=HTMLResponse)
+    def mission_status(request: Request, mission_id: str) -> Any:
+        import uuid
+        from fastapi import HTTPException
+        from fastapi.responses import Response
+        try:
+            mid = uuid.UUID(mission_id)
+        except ValueError:
+            raise HTTPException(status_code=404)
+        with session_scope() as session:
+            m = session.get(Mission, mid)
+            if m is None:
+                raise HTTPException(status_code=404)
+            terminal = m.status.value in ("done", "failed")
+        if terminal:
+            return Response(
+                content="", headers={"HX-Redirect": f"/missions/{mid}"}
+            )
+        return HTMLResponse(
+            '<div class="muted"><span class="spinner"></span> in progress…</div>'
+        )
 
     @app.post("/prices/refresh")
     def prices_refresh() -> Any:

@@ -189,3 +189,46 @@ def test_post_missions_rejects_short_statement(client):
         "horizon_months": "12",
     }, follow_redirects=False)
     assert r.status_code == 400
+
+
+def test_mission_detail_running_shows_spinner(client, session):
+    row = Mission(
+        statement="Test " * 10, budget_usd=Decimal("20000"),
+        max_positions=2, max_position_pct=Decimal("0.4"),
+        horizon_months=12, sectors_excluded=[], allow_shorts=False,
+        status=MissionStatus.running, created_at=datetime.now(UTC),
+        started_at=datetime.now(UTC),
+    )
+    session.add(row); session.commit()
+    r = client.get(f"/missions/{row.id}")
+    assert r.status_code == 200
+    assert "in progress" in r.text.lower() or "spinner" in r.text.lower()
+
+
+def test_status_endpoint_returns_redirect_when_done(client, session):
+    row = Mission(
+        statement="Test " * 10, budget_usd=Decimal("20000"),
+        max_positions=2, max_position_pct=Decimal("0.4"),
+        horizon_months=12, sectors_excluded=[], allow_shorts=False,
+        status=MissionStatus.done, created_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+    )
+    session.add(row); session.commit()
+    r = client.get(f"/missions/{row.id}/status")
+    assert r.status_code == 200
+    assert r.headers.get("HX-Redirect") == f"/missions/{row.id}"
+
+
+def test_status_endpoint_returns_spinner_when_running(client, session):
+    row = Mission(
+        statement="Test " * 10, budget_usd=Decimal("20000"),
+        max_positions=2, max_position_pct=Decimal("0.4"),
+        horizon_months=12, sectors_excluded=[], allow_shorts=False,
+        status=MissionStatus.running, created_at=datetime.now(UTC),
+        started_at=datetime.now(UTC),
+    )
+    session.add(row); session.commit()
+    r = client.get(f"/missions/{row.id}/status")
+    assert r.status_code == 200
+    assert "HX-Redirect" not in r.headers
+    assert "in progress" in r.text.lower()

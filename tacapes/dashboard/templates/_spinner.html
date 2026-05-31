@@ -1,1 +1,8 @@
-<section><div class="muted"><span class="spinner"></span> in progress…</div></section>
+<section>
+  <div id="status-poll"
+       hx-get="/missions/{{ m.id }}/status"
+       hx-trigger="every 3s"
+       hx-swap="outerHTML">
+    <div class="muted"><span class="spinner"></span> in progress…</div>
+  </div>
+</section>
