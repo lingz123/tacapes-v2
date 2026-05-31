@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}tacapes: history{% endblock %}
+{% block body %}
+<section>
+  <div class="muted">
+    {% if agg.invested > 0 %}
+      invested ${{ "%.0f"|format(agg.invested) }} ·
+      current ${{ "%.0f"|format(agg.current) }} ·
+      {% if agg.pnl_pct is not none %}
+        <span class="pnl {{ 'up' if agg.pnl_pct >= 0 else 'down' }}">
+          {{ "%+.2f"|format(agg.pnl_pct) }}%
+        </span>
+      {% endif %}
+      · ${{ "%.2f"|format(agg.cost) }} spent
+      {% if agg.n_unpriced %} · {{ agg.n_unpriced }} unpriced positions{% endif %}
+    {% else %}
+      no priced positions yet
+    {% endif %}
+  </div>
+</section>
+<section>
+  {% if rows %}
+    <table class="history">
+      <thead>
+        <tr>
+          <th>status</th>
+          <th>statement</th>
+          <th>created</th>
+          <th>cost</th>
+          <th>P&amp;L</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          {% include "_mission_row.html" %}
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">no missions yet. click <a href="/missions/new">+ new mission</a> to get started.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% set m = row.mission %}
+{% set pnl = row.pnl %}
+<tr>
+  <td><span class="badge {{ m.status.value }}">{{ m.status.value }}</span></td>
+  <td>
+    <a href="/missions/{{ m.id }}" class="statement-preview">
+      {{ m.statement[:120] }}{% if m.statement|length > 120 %}…{% endif %}
+    </a>
+  </td>
+  <td class="muted">{{ m.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+  <td>
+    {% if m.cost_usd is not none %}${{ "%.2f"|format(m.cost_usd|float) }}{% else %}—{% endif %}
+  </td>
+  <td>
+    {% if pnl and pnl.pnl_pct is not none %}
+      <span class="pnl {{ 'up' if pnl.pnl_pct >= 0 else 'down' }}">
+        {{ "%+.2f"|format(pnl.pnl_pct) }}%
+      </span>
+    {% else %}—{% endif %}
+  </td>
+  <td><a href="/missions/{{ m.id }}" class="btn">open</a></td>
+</tr>
