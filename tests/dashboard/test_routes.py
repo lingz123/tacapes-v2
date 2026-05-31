@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from tacapes.dashboard.app import create_app
 from tacapes.dashboard.db import session_scope
-from tacapes.dashboard.db.models import Mission, MissionStatus, Position
+from tacapes.dashboard.db.models import Mission, MissionStatus, Position, PriceQuote
 from tacapes.dashboard import prices
 
 
@@ -115,3 +115,16 @@ def test_mission_detail_404_invalid_uuid(client):
 def test_mission_detail_404_unknown_id(client):
     r = client.get("/missions/00000000-0000-0000-0000-000000000000")
     assert r.status_code == 404
+
+
+def test_prices_refresh_invalidates_cache(client, session):
+    session.add(PriceQuote(
+        ticker="NRG", price=Decimal("100"),
+        fetched_at=datetime.now(UTC),
+    ))
+    session.commit()
+    r = client.post("/prices/refresh", follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] == "/"
+    with session_scope() as s:
+        assert s.get(PriceQuote, "NRG") is None

@@ -134,3 +134,10 @@ def register(app: FastAPI) -> None:
             "pnl_per_position": pnl_per_position,
             "chosen": chosen,
         })
+
+    @app.post("/prices/refresh")
+    def prices_refresh() -> Any:
+        from fastapi.responses import RedirectResponse
+        with session_scope() as session:
+            prices.invalidate_price_cache(session)
+        return RedirectResponse("/", status_code=303)
