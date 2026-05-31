@@ -92,3 +92,45 @@ def register(app: FastAPI) -> None:
                 "cost": float(agg_cost),
             },
         })
+
+    @app.get("/missions/{mission_id}", response_class=HTMLResponse)
+    def mission_detail(request: Request, mission_id: str) -> Any:
+        import uuid
+        from .db.repo import get_mission_with_positions
+        try:
+            mid = uuid.UUID(mission_id)
+        except ValueError:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404)
+        with session_scope() as session:
+            m = get_mission_with_positions(session, mid)
+            if m is None:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=404)
+            current: dict = {}
+            pnl_per_position: dict = {}
+            if m.status.value == "done":
+                tickers = sorted({p.ticker for p in m.positions})
+                current = prices.get_current_prices(session, tickers)
+                for p in m.positions:
+                    cur = current.get(p.ticker)
+                    if p.entry_price and cur and p.entry_price > 0:
+                        pnl_per_position[p.ticker] = float(
+                            (cur - p.entry_price) / p.entry_price * 100
+                        )
+
+            # Compute chosen-tickers set for the shortlist's "Chosen / Passed" tags.
+            chosen: set[str] = set()
+            if m.portfolio_json:
+                chosen = {
+                    p["ticker"]
+                    for p in m.portfolio_json.get("positions", [])
+                    if "ticker" in p
+                }
+
+        return templates.TemplateResponse(request, "mission_detail.html", {
+            "m": m,
+            "current": current,
+            "pnl_per_position": pnl_per_position,
+            "chosen": chosen,
+        })

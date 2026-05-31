@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}tacapes: {{ m.statement[:40] }}{% endblock %}
+{% block body %}
+<p><a href="/" class="muted">← back</a></p>
+<h1 style="font-size:18px">{{ m.statement }}</h1>
+<p class="muted">
+  budget ${{ "%.0f"|format(m.budget_usd|float) }} ·
+  max {{ m.max_positions }} positions ·
+  {{ m.horizon_months }}mo horizon ·
+  created {{ m.created_at.strftime("%Y-%m-%d %H:%M") }}
+  {% if m.cost_usd is not none %} · ${{ "%.2f"|format(m.cost_usd|float) }} spent{% endif %}
+  · <span class="badge {{ m.status.value }}">{{ m.status.value }}</span>
+</p>
+
+{% if m.status.value in ("queued", "running") %}
+  {% include "_spinner.html" %}
+{% elif m.status.value == "failed" %}
+  {% include "_failed.html" %}
+{% else %}
+  {% include "_done.html" %}
+{% endif %}
+{% endblock %}
