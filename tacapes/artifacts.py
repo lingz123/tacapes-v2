@@ -19,7 +19,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from .config import state_root
 from .schemas import (
@@ -98,15 +97,15 @@ def render_ticker_md(
         parts.append(f"> {candidate.why_relevant}")
         parts.append("")
     if sub_theme is not None:
-        parts.append(f"**Sub-theme hypothesis (long-term thesis):**")
+        parts.append("**Sub-theme hypothesis (long-term thesis):**")
         parts.append("")
         parts.append(f"> {sub_theme.hypothesis}")
         parts.append("")
-        parts.append(f"**Growth drivers:**")
+        parts.append("**Growth drivers:**")
         parts.append("")
         parts.append(_bullets(sub_theme.growth_drivers))
         parts.append("")
-        parts.append(f"**Sub-theme risks (pre-research):**")
+        parts.append("**Sub-theme risks (pre-research):**")
         parts.append("")
         parts.append(_bullets(sub_theme.risks))
         parts.append("")
@@ -128,7 +127,7 @@ def render_ticker_md(
                 ])
             )
             parts.append("")
-        parts.append(f"**Risks confirmed by research:**")
+        parts.append("**Risks confirmed by research:**")
         parts.append("")
         parts.append(_bullets(assessment.risks_confirmed))
         parts.append("")
@@ -172,7 +171,7 @@ def render_ticker_md(
     parts.append("")
     parts.append(f"- **Thesis alignment:** `{memo.thesis_alignment}`")
     parts.append(f"- **Final conviction:** **{memo.conviction}/5**")
-    parts.append(f"- **Reconciliation notes:**")
+    parts.append("- **Reconciliation notes:**")
     parts.append("")
     parts.append(f"> {memo.reconciliation_notes}")
     parts.append("")

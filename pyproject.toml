@@ -43,5 +43,10 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["tacapes"]
 
+[tool.ruff.lint.per-file-ignores]
+# cli.py intentionally places imports after warnings.filterwarnings() calls
+# that must run before the noisy third-party modules are imported.
+"tacapes/cli.py" = ["E402"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
