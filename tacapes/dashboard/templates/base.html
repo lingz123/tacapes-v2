@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}tacapes{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+  <script src="{{ url_for('static', path='htmx.min.js') }}"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="brand">tacapes</a>
+    <nav>
+      <a href="/missions/new" class="btn btn-primary">+ new mission</a>
+      <form method="post" action="/prices/refresh" style="display:inline">
+        <button type="submit" class="btn">refresh prices</button>
+      </form>
+    </nav>
+  </header>
+  <main>
+    {% block body %}{% endblock %}
+  </main>
+</body>
+</html>

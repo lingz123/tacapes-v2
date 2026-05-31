@@ -1,0 +1,45 @@
+:root {
+  --fg: #111;
+  --muted: #777;
+  --bg: #fafafa;
+  --line: #e4e4e4;
+  --queued: #b08800;
+  --running: #2e6df1;
+  --done: #1e7e34;
+  --failed: #c93838;
+  --pnl-up: #1e7e34;
+  --pnl-down: #c93838;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.4 -apple-system, sans-serif; color: var(--fg); background: var(--bg); }
+.topbar { display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 24px; border-bottom: 1px solid var(--line); background: white; }
+.brand { font-weight: 600; font-size: 16px; text-decoration: none; color: var(--fg); }
+main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+.btn { display: inline-block; padding: 6px 12px; border: 1px solid var(--line);
+  border-radius: 4px; background: white; cursor: pointer; text-decoration: none;
+  color: var(--fg); font-size: 13px; }
+.btn:hover { background: var(--bg); }
+.btn-primary { background: var(--fg); color: white; border-color: var(--fg); }
+.btn-danger { color: var(--failed); }
+table.history { width: 100%; border-collapse: collapse; }
+table.history th, table.history td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+table.history th { font-size: 12px; text-transform: uppercase; color: var(--muted); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge.queued { background: #fff7e0; color: var(--queued); }
+.badge.running { background: #e8f0ff; color: var(--running); }
+.badge.done { background: #e8f5ec; color: var(--done); }
+.badge.failed { background: #fbe8e8; color: var(--failed); }
+.pnl.up { color: var(--pnl-up); }
+.pnl.down { color: var(--pnl-down); }
+.spinner { display: inline-block; width: 18px; height: 18px;
+  border: 2px solid var(--line); border-top-color: var(--running);
+  border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.statement-preview { color: var(--fg); max-width: 540px; }
+.muted { color: var(--muted); font-size: 12px; }
+section { margin-bottom: 32px; }
+section h2 { font-size: 14px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+details.report { margin: 6px 0; }
+details.report summary { cursor: pointer; padding: 6px 0; }
+.failed-panel { padding: 32px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
