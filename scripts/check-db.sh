@@ -7,7 +7,7 @@ USER="${PGUSER:-tacapes}"
 DB="${PGDATABASE:-tacapes}"
 for i in {1..30}; do
   if docker exec tacapes-db pg_isready -U "$USER" -d "$DB" -h localhost >/dev/null 2>&1; then
-    echo "db ready at ${HOST}:${PORT}/${DB}"
+    echo "db ready (container tacapes-db) at 127.0.0.1:${PORT}/${DB}"
     exit 0
   fi
   sleep 1
