@@ -90,8 +90,42 @@ def test_mission_detail_done_renders_all_sections(client, session):
     row.decomposition_json = {"sub_themes": [{"id": "s1", "name": "AI Power"}]}
     row.assessments_json = {"s1": {"candidates": [{"ticker": "NRG"}]}}
     row.shortlist_json = {"candidates": [{"ticker": "NRG", "conviction": 5}]}
-    row.ta_outputs_json = {"NRG": {"final_decision": "Buy"}}
-    row.memos_json = {"NRG": {"conviction": 5, "thesis_alignment": "aligned"}}
+    row.ta_outputs_json = {"NRG": {
+        "ticker": "NRG", "mission_id": str(row.id), "trade_date": "2026-05-12",
+        "rating": "Buy",
+        "full_decision_markdown": "## Decision\nBuy NRG.\n\n**Reason:** thesis intact.",
+        "market_report": "Market is constructive. Volume up 12%.",
+        "investment_plan": "Enter at market open.",
+        "price_target": 175.0, "time_horizon": "12m",
+    }}
+    row.memos_json = {"NRG": {
+        "ticker": "NRG",
+        "thesis_one_liner": "AI power demand drives nuclear-adjacent names.",
+        "conviction": 5,
+        "thesis_alignment": "aligned",
+        "reconciliation_notes": "TA Buy + thesis intact: aligned with no caveats.",
+        "drivers": [
+            {"name": "Data-center power demand", "importance": "primary",
+             "description": "AI training capex pulls grid forward."},
+        ],
+        "risks": [
+            {"name": "Regulatory delays", "severity": "medium", "likelihood": "low",
+             "description": "Permitting can slip a quarter or two."},
+        ],
+        "catalysts": [
+            {"name": "Q3 earnings", "impact": "medium",
+             "description": "Guidance update."},
+        ],
+        "valuation": {
+            "base":    {"label": "base",    "methodology": "DCF", "price_target": 175.0},
+            "bear":    {"label": "bear",    "methodology": "DCF", "price_target": 130.0},
+            "bull":    {"label": "bull",    "methodology": "DCF", "price_target": 220.0},
+            "current": {"label": "current", "methodology": "spot", "price_target": None},
+        },
+        "thesis_breakers": [
+            "NRG reports gross margin below 25% in any of the next 4 quarters",
+        ],
+    }}
     session.commit()
     mission_id = row.id
 
@@ -100,11 +134,36 @@ def test_mission_detail_done_renders_all_sections(client, session):
         r = client.get(f"/missions/{mission_id}")
     assert r.status_code == 200
     body = r.text
+
+    # Spine sections still render.
     assert "AI Power" in body
     assert "NRG" in body
-    assert "Buy" in body
-    assert "aligned" in body
     assert "Chosen" in body
+
+    # Memo: structured content (not JSON).
+    assert "Conviction: 5/5" in body
+    assert "conviction-good" in body, "conviction 5 must carry the 'good' badge class"
+    assert "alignment-good" in body, "thesis_alignment=aligned must carry the 'good' badge class"
+    assert "aligned" in body
+    assert "Reconciliation notes" in body
+    assert "TA Buy + thesis intact" in body
+    assert "Data-center power demand" in body
+    assert "Regulatory delays" in body
+    assert "Q3 earnings" in body
+    assert "Thesis breakers" in body
+    assert "gross margin below 25%" in body
+    assert "Valuation" in body
+    assert "$175.00" in body
+
+    # TA debate: rendered with semantic badge + prose, no JSON dump.
+    assert "PM decision: Buy" in body
+    assert "rating-good" in body
+    assert "Buy NRG." in body
+    assert "Market is constructive" in body
+
+    # Raw JSON dump is gone.
+    assert "&#34;final_decision&#34;" not in body
+    assert "<pre>{" not in body
 
 
 def test_mission_detail_404_invalid_uuid(client):

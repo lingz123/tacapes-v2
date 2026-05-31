@@ -40,17 +40,34 @@
   <h2>reports</h2>
   {% if m.memos_json %}
     {% for ticker, memo in m.memos_json.items() %}
+      {% set ta = m.ta_outputs_json.get(ticker) if m.ta_outputs_json else none %}
       <details class="report">
         <summary>
           <strong>{{ ticker }}</strong>
-          · conviction {{ memo.get("conviction", "—") }},
-          alignment {{ memo.get("thesis_alignment", "—") }}
+          {% if memo.get("conviction") is not none %}
+            <span class="badge conviction-{{ memo.get('conviction') | conviction_color }}">
+              conviction {{ memo.get("conviction") }}/5
+            </span>
+          {% endif %}
+          {% if memo.get("thesis_alignment") %}
+            <span class="badge alignment-{{ memo.get('thesis_alignment') | alignment_color }}">
+              {{ memo.get("thesis_alignment") | alignment_label }}
+            </span>
+          {% endif %}
+          {% if ta and ta.get("rating") %}
+            <span class="badge rating-{{ ta.get('rating') | rating_color }}">
+              TA: {{ ta.get("rating") }}
+            </span>
+          {% endif %}
         </summary>
-        <h4>memo</h4>
-        <pre>{{ memo | tojson(indent=2) }}</pre>
-        {% if m.ta_outputs_json and m.ta_outputs_json.get(ticker) %}
-          <h4>TradingAgents debate</h4>
-          <pre>{{ m.ta_outputs_json[ticker] | tojson(indent=2) }}</pre>
+        <div class="memo-card">
+          {% include "_memo_card.html" %}
+        </div>
+        {% if ta %}
+          <details class="ta-debate">
+            <summary>TradingAgents debate</summary>
+            {% include "_ta_debate.html" %}
+          </details>
         {% endif %}
       </details>
     {% endfor %}

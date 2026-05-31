@@ -20,8 +20,11 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from . import filters as _filters
+
 _DIR = Path(__file__).parent
 _TEMPLATES = Jinja2Templates(directory=str(_DIR / "templates"))
+_filters.register(_TEMPLATES.env)
 
 
 def create_app(*, job_runner: Any | None = None) -> FastAPI:

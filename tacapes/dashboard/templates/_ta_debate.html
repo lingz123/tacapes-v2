@@ -1,0 +1,85 @@
+{#
+  Renders one TradingAgentsOutput.
+
+  Expects `ta` (the json-mode dict for one ticker) from the parent
+  context. Each prose field is shown only if present; the analyst
+  reports and plans collapse into nested <details> blocks rendered
+  via the `mdtext` filter (escape + **bold** + headings, whitespace
+  preserved at the CSS layer).
+
+  If none of the recognized fields are present we fall back to a
+  muted note rather than dumping JSON.
+#}
+<header class="ta-header">
+  {% if ta.get("rating") %}
+    <span class="badge rating-{{ ta.get('rating') | rating_color }}">
+      PM decision: {{ ta.get("rating") }}
+    </span>
+  {% endif %}
+  {% if ta.get("price_target") is not none %}
+    <span class="chip">target ${{ "%.2f"|format(ta.get("price_target")|float) }}</span>
+  {% endif %}
+  {% if ta.get("time_horizon") %}
+    <span class="chip">horizon: {{ ta.get("time_horizon") }}</span>
+  {% endif %}
+  {% if ta.get("suggested_position_pct") is not none %}
+    <span class="chip">suggested {{ "%.1f"|format(ta.get("suggested_position_pct")|float * 100) }}%</span>
+  {% endif %}
+  {% if ta.get("trade_date") %}
+    <span class="muted">trade date {{ ta.get("trade_date") }}</span>
+  {% endif %}
+</header>
+
+{% set known_fields = (
+  "full_decision_markdown", "investment_plan", "trader_investment_plan",
+  "risk_debate_judge_decision", "market_report", "news_report",
+  "sentiment_report", "fundamentals_report",
+) %}
+{% set has_prose = namespace(any=false) %}
+{% for k in known_fields %}{% if ta.get(k) %}{% set has_prose.any = true %}{% endif %}{% endfor %}
+
+{% if ta.get("full_decision_markdown") %}
+<details class="ta-section" open>
+  <summary>PM full decision</summary>
+  <div class="md-text">{{ ta.get("full_decision_markdown") | mdtext }}</div>
+</details>
+{% endif %}
+
+{% if ta.get("investment_plan") %}
+<details class="ta-section">
+  <summary>Research manager: investment plan</summary>
+  <div class="md-text">{{ ta.get("investment_plan") | mdtext }}</div>
+</details>
+{% endif %}
+
+{% if ta.get("trader_investment_plan") %}
+<details class="ta-section">
+  <summary>Trader: transaction proposal</summary>
+  <div class="md-text">{{ ta.get("trader_investment_plan") | mdtext }}</div>
+</details>
+{% endif %}
+
+{% if ta.get("risk_debate_judge_decision") %}
+<details class="ta-section">
+  <summary>Risk debate: judge decision</summary>
+  <div class="md-text">{{ ta.get("risk_debate_judge_decision") | mdtext }}</div>
+</details>
+{% endif %}
+
+{% for key, label in [
+  ("market_report", "Market report"),
+  ("news_report", "News report"),
+  ("sentiment_report", "Sentiment report"),
+  ("fundamentals_report", "Fundamentals report"),
+] %}
+  {% if ta.get(key) %}
+  <details class="ta-section">
+    <summary>{{ label }}</summary>
+    <div class="md-text">{{ ta.get(key) | mdtext }}</div>
+  </details>
+  {% endif %}
+{% endfor %}
+
+{% if not has_prose.any %}
+  <p class="muted">no detailed TA output recorded.</p>
+{% endif %}
