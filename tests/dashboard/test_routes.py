@@ -128,3 +128,13 @@ def test_prices_refresh_invalidates_cache(client, session):
     assert r.headers["location"] == "/"
     with session_scope() as s:
         assert s.get(PriceQuote, "NRG") is None
+
+
+def test_mission_new_renders_form(client):
+    r = client.get("/missions/new")
+    assert r.status_code == 200
+    body = r.text
+    for field in ("statement", "budget_usd", "max_positions",
+                  "max_position_pct", "horizon_months",
+                  "sectors_excluded", "allow_shorts"):
+        assert field in body

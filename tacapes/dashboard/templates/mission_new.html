@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}tacapes: new mission{% endblock %}
+{% block body %}
+<p><a href="/" class="muted">← back</a></p>
+<h1 style="font-size:18px">new mission</h1>
+<form method="post" action="/missions" style="max-width:600px">
+  <p>
+    <label>statement<br>
+      <textarea name="statement" required minlength="20" rows="4" style="width:100%"
+        placeholder="Buy nuclear power names positioned to win AI/data center power contracts through 2027"></textarea>
+    </label>
+  </p>
+  <p>
+    <label>budget_usd <input type="number" name="budget_usd" value="20000" min="1" step="1" required></label>
+  </p>
+  <p>
+    <label>max_positions <input type="number" name="max_positions" value="5" min="1" step="1" required></label>
+  </p>
+  <p>
+    <label>max_position_pct <input type="number" name="max_position_pct" value="0.4" min="0.01" max="1.0" step="0.01" required></label>
+  </p>
+  <p>
+    <label>horizon_months <input type="number" name="horizon_months" value="12" min="1" step="1" required></label>
+  </p>
+  <p>
+    <label>sectors_excluded (comma-separated)<br>
+      <input type="text" name="sectors_excluded" placeholder="e.g. crypto,gambling" style="width:100%">
+    </label>
+  </p>
+  <p>
+    <label><input type="checkbox" name="allow_shorts" value="1"> allow shorts</label>
+  </p>
+  <p>
+    <button type="submit" class="btn btn-primary">run mission</button>
+  </p>
+</form>
+{% endblock %}

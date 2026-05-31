@@ -93,6 +93,10 @@ def register(app: FastAPI) -> None:
             },
         })
 
+    @app.get("/missions/new", response_class=HTMLResponse)
+    def mission_new(request: Request) -> Any:
+        return templates.TemplateResponse(request, "mission_new.html", {})
+
     @app.get("/missions/{mission_id}", response_class=HTMLResponse)
     def mission_detail(request: Request, mission_id: str) -> Any:
         import uuid
