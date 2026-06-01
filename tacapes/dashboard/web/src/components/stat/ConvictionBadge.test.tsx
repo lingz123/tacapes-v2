@@ -4,9 +4,9 @@ import { render, screen } from '@testing-library/react';
 import { ConvictionBadge } from './ConvictionBadge';
 
 // One assertion per row: matrix of inputs covering both color bands and the
-// missing-value placeholder. Mirrors the conviction_color filter in
-// tacapes/dashboard/filters.py; if these diverge in Phase 6+, we want the
-// frontend test, not a dogfood pass, to catch it.
+// missing-value placeholder. The TS rules in src/lib/derive.ts are the only
+// source of truth now (the Jinja filter module that used to mirror them was
+// deleted in dashboard-redesign Phase 6).
 describe('ConvictionBadge', () => {
   it.each([
     [5, 'good'],

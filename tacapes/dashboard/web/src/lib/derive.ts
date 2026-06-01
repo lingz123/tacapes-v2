@@ -1,9 +1,9 @@
 /**
  * Semantic-color derivations for badges and pills.
  *
- * Direct ports of the Jinja filters in `tacapes/dashboard/filters.py`. The
- * rules need to stay in lockstep with the Python side until Phase 6 deletes
- * the Jinja UI; any drift will surface as a regression in the dogfood pass.
+ * Direct ports of what was once `tacapes/dashboard/filters.py` (Jinja).
+ * That module was deleted in the dashboard-redesign Phase 6 cutover; this
+ * file is now the single source of truth for the badge-color rules.
  *
  * Output is one of four discriminants: `good` (green), `warn` (amber),
  * `bad` (red), `neutral` (no accent). Components map these to color

@@ -9,8 +9,10 @@ import {
   semanticClasses,
 } from './derive';
 
-// Mirror the filter unit-tests in tests/dashboard/test_filters.py so a Phase 6
-// drift between Python and TS surfaces here first.
+// Filter-color contract. The matching Python rules used to live in
+// tests/dashboard/test_filters.py; that file (and the Jinja filter module
+// it tested) was deleted in dashboard-redesign Phase 6. These cases are
+// now the canonical pin on the badge-color rules.
 describe('convictionColor', () => {
   it.each([
     [5, 'good'],

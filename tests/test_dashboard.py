@@ -94,11 +94,9 @@ def test_index_renders_the_book(tmp_path, monkeypatch) -> None:
     assert 'id="book"' in resp.text
 
 
-def test_static_htmx_is_served(tmp_path, monkeypatch) -> None:
-    client, _fake = _client(monkeypatch, tmp_path)
-    resp = client.get("/static/htmx.min.js")
-    assert resp.status_code == 200
-    assert "HTMX-subset" in resp.text
+# The HTMX bundle ride-along ("test_static_htmx_is_served") was deleted in
+# dashboard-redesign Phase 6 along with the rest of the Jinja UI. The SPA
+# ships its own JS bundle out of web/dist/assets/.
 
 
 # ---------------------------------------------------------------------------

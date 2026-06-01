@@ -1,5 +1,11 @@
 # tacapes: history dashboard
 
+> Heads up (2026-05-31): §2 (UI stack decision) and §6 (templates list) are
+> superseded by `2026-05-31-dashboard-redesign-design.md`. The Jinja+HTMX UI
+> documented here was deleted in the dashboard-redesign Phase 6 cutover and
+> replaced with the React + shadcn SPA. The rest of this spec (data model,
+> API surface, mission lifecycle, backfill) still holds.
+
 Design spec. Companion to `README.md` (v2.0 one-shot pipeline) and supersedes
 the dashboard portion of `claude/design_v2.md`. This document is the source of
 truth for the **history dashboard** slice. It deliberately scopes *out* the
