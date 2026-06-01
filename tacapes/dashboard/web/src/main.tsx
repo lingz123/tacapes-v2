@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 
 import { App } from './App';
+import { Toaster } from '@/components/ui/sonner';
 import './styles/globals.css';
 
 // Single QueryClient for the whole app. Defaults tuned for a local dashboard:
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
+        <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
