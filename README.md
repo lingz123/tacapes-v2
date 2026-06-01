@@ -1,6 +1,6 @@
 # tacapes
 
-> Mission-driven LLM portfolio builder. Hand it a thesis and a budget; it decomposes the thesis into sub-themes, runs per-ticker [TradingAgents](https://github.com/TauricResearch/TradingAgents) debates, reconciles each one against the long-term thesis, and constructs a Kelly-sized portfolio.
+> Mission-driven LLM portfolio builder. Hand it a thesis and a budget; it decomposes the thesis into sub-themes, runs per-ticker [TradingAgents](https://github.com/TauricResearch/TradingAgents) debates, reconciles each one against the long-term thesis, and constructs a Kelly-sized portfolio. Ships with a local React dashboard for browsing past missions, their memos, and live P&L.
 
 <p align="left">
   <img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue">
@@ -121,6 +121,47 @@ You'll see live progress: stage panels, sub-theme tree, per-ticker spinners with
 
 ---
 
+## History dashboard
+
+A local Postgres database backs a React SPA that browses every prior mission. CLI runs (`tacapes new`) write JSON to disk under `~/.tacapes/portfolios/<id>/`. The dashboard's first launch imports those into the database (idempotent), and missions submitted later from the dashboard write straight to the database. The SPA serves three vertical zones per mission: **Outcome** (positions and live P&L), **Why** (sub-themes and shortlist), and **Audit** (memo accordion with weak-spot flags and the full TradingAgents debate).
+
+### One-time setup
+
+```bash
+docker compose up -d db        # starts the tacapes-db Postgres container
+```
+
+The container binds `127.0.0.1:5433` and persists data to `~/.tacapes/pgdata` so it survives `docker rm`. `.env` already points `DATABASE_URL` at this URL.
+
+### Run it
+
+```bash
+tacapes dashboard              # binds 127.0.0.1:8732, Ctrl-C to stop
+```
+
+First launch runs alembic migrations and backfills every prior `~/.tacapes/portfolios/<id>/` run into the database (idempotent). After that, open **[http://127.0.0.1:8732](http://127.0.0.1:8732)** and you'll see:
+
+- **Mission list** with all-time invested, current value, P&L, and spend across every backfilled and run mission.
+- **Mission detail** for each one:
+  - **Outcome zone.** Sortable position table (default P&L desc). Ticker cells link straight to the matching memo card in the audit zone.
+  - **Why zone.** Sub-theme card grid (name, hypothesis, candidate-chosen ratio, key findings) and a shortlist table (ticker, sub-theme, conviction, Chosen/Passed) with rows that scroll to the memo.
+  - **Audit zone.** Toolbar with sort (portfolio order / alpha / conviction / P&L) and filter chips (all / fallback / trap / losing) that live in URL search params so deep links survive. Below that, the per-ticker memo accordion: each summary row carries conviction, alignment, TA rating, current P&L, and weak-spot icons (`⚠` fallback, `⚖` trap, `📉` losing). Expanded body shows drivers, risks, catalysts, valuation, thesis breakers, and the full TradingAgents debate in chronological order.
+
+Polling refreshes status every 3 seconds for queued or running missions and stops once the pipeline lands.
+
+### Development
+
+The SPA lives at `tacapes/dashboard/web/`. Two long-lived processes in dev:
+
+```bash
+.venv/bin/tacapes dashboard    # FastAPI + JSON API on :8732
+pnpm -C tacapes/dashboard/web dev   # Vite + HMR on :5173 (proxies /api to :8732)
+```
+
+Visit `http://127.0.0.1:5173` for HMR. `pnpm -C tacapes/dashboard/web build` produces `dist/` that FastAPI serves as the SPA fallback in prod.
+
+---
+
 ## Output
 
 Everything lands at `~/.tacapes/portfolios/<mission_id>/`:
@@ -149,6 +190,8 @@ ta_logs/ ta_cache/ ta_memory/   TradingAgents internal artifacts
 3. **Reconciled Memo.** `thesis_alignment` category, derived conviction, reconciliation notes, plus structured drivers, risks, catalysts, valuation, and thesis-breakers.
 
 Per-ticker notes are written **incrementally** during the run (after each memo completes), so a crashed run still preserves partial output.
+
+The dashboard (see [History dashboard](#history-dashboard)) stores the same data in Postgres for indexed queries and live P&L. CLI runs write JSON to disk only; the dashboard back-fills those into the database on launch (idempotent). Missions submitted from the dashboard's `+ New mission` dialog write to the database directly.
 
 ---
 
@@ -251,6 +294,16 @@ tacapes/
 │   └── news.py             NewsAPI wrapper
 ├── prompts/                .md prompts loaded by name
 ├── nodes/                  one file per LangGraph node + matching mock_*
+├── dashboard/              the local web dashboard
+│   ├── app.py              FastAPI app, mounts /api + serves the SPA
+│   ├── api/                JSON endpoints + Pydantic response models
+│   ├── db/                 SQLAlchemy 2.0 models + Alembic migrations
+│   ├── backfill.py         idempotent ~/.tacapes/portfolios/ -> DB import
+│   ├── prices.py           yfinance + 15-min current-price cache
+│   ├── jobs.py             single-worker ThreadPoolExecutor for mission runs
+│   ├── runners.py          job body: pipeline -> DB writes
+│   └── web/                React + Vite + TypeScript + Tailwind + shadcn/ui SPA
+│       └── src/{api,components,pages,lib,styles,types}/
 └── tests/                  pytest, mocked LLMs
 ```
 
@@ -259,8 +312,13 @@ tacapes/
 ## Development
 
 ```bash
-# tests
+# backend tests
 pytest -q
+
+# SPA tests + typecheck + build
+pnpm -C tacapes/dashboard/web test
+pnpm -C tacapes/dashboard/web typecheck
+pnpm -C tacapes/dashboard/web build
 
 # preflight (cheap smoke test against live APIs)
 tacapes preflight
