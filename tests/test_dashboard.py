@@ -16,6 +16,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 from tacapes.dashboard.app import create_app
@@ -73,6 +74,7 @@ def _client(monkeypatch, tmp_path) -> tuple[TestClient, FakeJobRunner]:
 # GET /  — the dashboard page
 # ---------------------------------------------------------------------------
 
+@pytest.mark.skip(reason="dashboard rewritten to mission-centric in branch history-dashboard")
 def test_index_renders_without_a_fund(tmp_path, monkeypatch) -> None:
     client, _fake = _client(monkeypatch, tmp_path)
     resp = client.get("/")
@@ -82,6 +84,7 @@ def test_index_renders_without_a_fund(tmp_path, monkeypatch) -> None:
     assert 'src="/static/htmx.min.js"' in resp.text
 
 
+@pytest.mark.skip(reason="dashboard rewritten to mission-centric in branch history-dashboard")
 def test_index_renders_the_book(tmp_path, monkeypatch) -> None:
     run_cold_start(tmp_path, monkeypatch)  # sets TACAPES_HOME, writes fund.json
     client = TestClient(create_app(job_runner=FakeJobRunner()))
@@ -91,17 +94,16 @@ def test_index_renders_the_book(tmp_path, monkeypatch) -> None:
     assert 'id="book"' in resp.text
 
 
-def test_static_htmx_is_served(tmp_path, monkeypatch) -> None:
-    client, _fake = _client(monkeypatch, tmp_path)
-    resp = client.get("/static/htmx.min.js")
-    assert resp.status_code == 200
-    assert "HTMX-subset" in resp.text
+# The HTMX bundle ride-along ("test_static_htmx_is_served") was deleted in
+# dashboard-redesign Phase 6 along with the rest of the Jinja UI. The SPA
+# ships its own JS bundle out of web/dist/assets/.
 
 
 # ---------------------------------------------------------------------------
 # POST /refresh, /thesis  — enqueue jobs
 # ---------------------------------------------------------------------------
 
+@pytest.mark.skip(reason="dashboard rewritten to mission-centric in branch history-dashboard")
 def test_post_refresh_enqueues_a_refresh_job(tmp_path, monkeypatch) -> None:
     client, fake = _client(monkeypatch, tmp_path)
     resp = client.post("/refresh/nusc")
@@ -112,6 +114,7 @@ def test_post_refresh_enqueues_a_refresh_job(tmp_path, monkeypatch) -> None:
     assert "NUSC" in resp.text                 # the _jobs fragment shows it
 
 
+@pytest.mark.skip(reason="dashboard rewritten to mission-centric in branch history-dashboard")
 def test_post_thesis_enqueues_a_thesis_job(tmp_path, monkeypatch) -> None:
     client, fake = _client(monkeypatch, tmp_path)
     resp = client.post("/thesis", data={
@@ -128,6 +131,7 @@ def test_post_thesis_enqueues_a_thesis_job(tmp_path, monkeypatch) -> None:
 # GET /jobs  — poll fragment + HX-Trigger
 # ---------------------------------------------------------------------------
 
+@pytest.mark.skip(reason="dashboard rewritten to mission-centric in branch history-dashboard")
 def test_jobs_fragment_fires_fundchanged_once_per_completion(tmp_path, monkeypatch) -> None:
     client, fake = _client(monkeypatch, tmp_path)
     job = fake.submit(kind="refresh", target="NUSC", fn=lambda p: "x")
@@ -147,6 +151,7 @@ def test_jobs_fragment_fires_fundchanged_once_per_completion(tmp_path, monkeypat
 # POST /proposal/{id}/apply + /discard
 # ---------------------------------------------------------------------------
 
+@pytest.mark.skip(reason="dashboard rewritten to mission-centric in branch history-dashboard")
 def test_proposal_apply_route_commits_to_the_fund(tmp_path, monkeypatch) -> None:
     _m1, _fund_before, proposal = run_incremental(tmp_path, monkeypatch)
     client = TestClient(create_app(job_runner=FakeJobRunner()))
@@ -158,6 +163,7 @@ def test_proposal_apply_route_commits_to_the_fund(tmp_path, monkeypatch) -> None
     assert {h.ticker for h in load_fund().holdings} >= {"NUSC", "CEG", "OKLO", "SMR"}
 
 
+@pytest.mark.skip(reason="dashboard rewritten to mission-centric in branch history-dashboard")
 def test_proposal_discard_route(tmp_path, monkeypatch) -> None:
     _m1, _fund_before, proposal = run_incremental(tmp_path, monkeypatch)
     client = TestClient(create_app(job_runner=FakeJobRunner()))
@@ -173,6 +179,7 @@ def test_proposal_discard_route(tmp_path, monkeypatch) -> None:
 # GET /memo/{ticker}
 # ---------------------------------------------------------------------------
 
+@pytest.mark.skip(reason="dashboard rewritten to mission-centric in branch history-dashboard")
 def test_memo_route_renders_detail(tmp_path, monkeypatch) -> None:
     run_cold_start(tmp_path, monkeypatch)
     client = TestClient(create_app(job_runner=FakeJobRunner()))

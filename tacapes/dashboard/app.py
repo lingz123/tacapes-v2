@@ -1,60 +1,33 @@
-"""
-FastAPI app for the local dashboard (design §7.2).
+"""FastAPI app for the tacapes dashboard.
 
-No build step, no JS framework — Jinja templates plus a vendored HTMX-subset
-shim under static/. `create_app` takes an optional `job_runner` so tests can
-swap in a synchronous fake (no threads, no network).
+Routes:
+  GET  /healthz                   DB ping
+  GET  /api/*                     JSON API for the React SPA
+  GET  /assets/*                  built JS/CSS chunks served from web/dist/assets
+  GET  /{anything}                SPA fallback: serves the matching file out
+                                  of web/dist if it exists, otherwise index.html
+                                  so React Router can take over
 
-Routes
-  GET  /                       full dashboard page
-  POST /refresh/{ticker}       enqueue a refresh job
-  POST /thesis                 enqueue a thesis job from the new-thesis form
-  POST /proposal/{id}/apply    apply a proposal → refreshed book fragment
-  POST /proposal/{id}/discard  discard a pending proposal → book fragment
-  GET  /jobs                   HTMX poll fragment; fires HX-Trigger: fundChanged
-  GET  /memo/{ticker}          memo detail (drivers/risks/breakers/valuation)
+The Jinja+HTMX UI that used to live here was deleted in the dashboard-redesign
+Phase 6 cutover; see
+docs/superpowers/specs/2026-05-31-dashboard-redesign-design.md.
+
+The SPA fallback only mounts when `pnpm build` has produced `web/dist/`.
+Dev mode runs `vite dev` on :5173 separately, with /api proxied through
+to this app on :8732 — `dist/` is absent there and the catch-all routes
+are simply not registered.
 """
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 _DIR = Path(__file__).parent
-_TEMPLATES = Jinja2Templates(directory=str(_DIR / "templates"))
-
-
-def _book_context() -> dict[str, Any]:
-    """Fund + the single pending proposal — the data behind the `#book` div."""
-    from ..fund import fund_exists, load_fund
-    from ..proposals import list_proposals
-
-    fund = load_fund() if fund_exists() else None
-    pending = next(
-        (p for p in list_proposals() if p.status == "pending"), None
-    )
-    return {"fund": fund, "proposal": pending}
-
-
-def _load_memo(ticker: str) -> Any:
-    """The latest InvestmentMemo for a holding, via its stored memo_ref."""
-    from ..config import tacapes_home
-    from ..fund import fund_exists, get_holding, load_fund
-    from ..schemas import InvestmentMemo
-
-    if not fund_exists():
-        return None
-    holding = get_holding(load_fund(), ticker)
-    if holding is None:
-        return None
-    path = tacapes_home() / holding.memo_ref
-    if not path.exists():
-        return None
-    return InvestmentMemo.model_validate_json(path.read_text(encoding="utf-8"))
+_WEB_DIST = _DIR / "web" / "dist"
 
 
 def create_app(*, job_runner: Any | None = None) -> FastAPI:
@@ -63,87 +36,40 @@ def create_app(*, job_runner: Any | None = None) -> FastAPI:
 
     app = FastAPI(title="tacapes dashboard")
     app.state.job_runner = job_runner if job_runner is not None else JobRunner()
-    app.mount(
-        "/static", StaticFiles(directory=str(_DIR / "static")), name="static"
-    )
 
-    @app.get("/", response_class=HTMLResponse)
-    def index(request: Request) -> Any:
-        ctx = _book_context()
-        ctx["jobs"] = request.app.state.job_runner.list_jobs()
-        return _TEMPLATES.TemplateResponse(request, "index.html", ctx)
-
-    @app.post("/refresh/{ticker}", response_class=HTMLResponse)
-    def refresh(request: Request, ticker: str) -> Any:
-        from .runners import make_refresh_job
-
-        runner = request.app.state.job_runner
-        runner.submit(
-            kind="refresh",
-            target=ticker.upper(),
-            fn=make_refresh_job(ticker.upper()),
-        )
-        return _TEMPLATES.TemplateResponse(
-            request, "_jobs.html", {"jobs": runner.list_jobs()}
-        )
-
-    @app.post("/thesis", response_class=HTMLResponse)
-    def thesis(
-        request: Request,
-        statement: str = Form(...),
-        budget: float = Form(20000.0),
-        max_positions: int = Form(5),
-    ) -> Any:
-        from .runners import make_thesis_job
-
-        runner = request.app.state.job_runner
-        runner.submit(
-            kind="thesis",
-            target=statement[:80],
-            fn=make_thesis_job(statement, budget, max_positions),
-        )
-        return _TEMPLATES.TemplateResponse(
-            request, "_jobs.html", {"jobs": runner.list_jobs()}
-        )
-
-    @app.post("/proposal/{proposal_id}/apply", response_class=HTMLResponse)
-    def proposal_apply(request: Request, proposal_id: str) -> Any:
-        from ..proposals import apply_proposal
-
+    @app.get("/healthz")
+    def healthz() -> JSONResponse:
+        from sqlalchemy import text
+        from .db import get_engine
         try:
-            apply_proposal(proposal_id)
-        except (ValueError, FileNotFoundError):
-            pass  # already applied/discarded/gone — fall through to re-render
-        return _TEMPLATES.TemplateResponse(request, "_book.html", _book_context())
+            with get_engine().connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return JSONResponse({"ok": True})
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": str(e)[:200]}, status_code=503)
 
-    @app.post("/proposal/{proposal_id}/discard", response_class=HTMLResponse)
-    def proposal_discard(request: Request, proposal_id: str) -> Any:
-        from ..proposals import discard_proposal
+    # JSON API. Registered before the SPA fallback so /api/* never falls
+    # through to index.html.
+    from .api import routes as api_routes
+    api_routes.register(app)
 
-        try:
-            discard_proposal(proposal_id)
-        except (ValueError, FileNotFoundError):
-            pass
-        return _TEMPLATES.TemplateResponse(request, "_book.html", _book_context())
-
-    @app.get("/jobs", response_class=HTMLResponse)
-    def jobs(request: Request) -> Any:
-        runner = request.app.state.job_runner
-        resp = _TEMPLATES.TemplateResponse(
-            request, "_jobs.html", {"jobs": runner.list_jobs()}
+    # SPA fallback. Only active when `pnpm build` has produced web/dist/.
+    # In dev (`vite dev` on :5173), this branch stays inert and FastAPI
+    # serves only /healthz + /api/*.
+    if _WEB_DIST.exists():
+        app.mount(
+            "/assets",
+            StaticFiles(directory=str(_WEB_DIST / "assets")),
+            name="spa-assets",
         )
-        # A job flipped to done/failed since the last poll → tell the book to
-        # re-fetch itself (design §7.2).
-        if runner.drain_completed():
-            resp.headers["HX-Trigger"] = "fundChanged"
-        return resp
 
-    @app.get("/memo/{ticker}", response_class=HTMLResponse)
-    def memo(request: Request, ticker: str) -> Any:
-        return _TEMPLATES.TemplateResponse(
-            request,
-            "_memo.html",
-            {"ticker": ticker.upper(), "memo": _load_memo(ticker.upper())},
-        )
+        @app.get("/{full_path:path}", include_in_schema=False)
+        def spa_fallback(full_path: str) -> Any:
+            # /api/* never reaches here — those routes register first.
+            # Same-named static files (favicon, etc.) are served from dist root.
+            candidate = _WEB_DIST / full_path
+            if full_path and candidate.is_file():
+                return FileResponse(candidate)
+            return FileResponse(_WEB_DIST / "index.html")
 
     return app

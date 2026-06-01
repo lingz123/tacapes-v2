@@ -34,7 +34,7 @@ class Job(Strict):
     """One unit of background work, mirrored to ~/.tacapes/jobs/<id>.json."""
 
     id: str
-    kind: Literal["refresh", "thesis"]
+    kind: Literal["refresh", "thesis", "mission"]
     target: str                       # ticker (refresh) | statement (thesis)
     status: Literal["queued", "running", "done", "failed"] = "queued"
     progress_msg: str = ""

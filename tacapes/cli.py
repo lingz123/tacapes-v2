@@ -27,7 +27,6 @@ _warnings.filterwarnings(
 import os
 import time
 from collections import Counter
-from pathlib import Path
 from typing import Any
 
 import typer
@@ -434,11 +433,14 @@ def dashboard(
     host: str = typer.Option("127.0.0.1", "--host", help="Bind host"),
     port: int = typer.Option(8732, "--port", help="Bind port"),
 ) -> None:
-    """Launch the local web dashboard (FastAPI + HTMX on 127.0.0.1:8732)."""
+    """Launch the local web dashboard (FastAPI + React SPA on 127.0.0.1:8732)."""
     load_dotenv()
-    import uvicorn
+    import uvicorn  # noqa: PLC0415
 
-    from .dashboard.app import create_app
+    from .dashboard import bootstrap_db  # noqa: PLC0415
+    from .dashboard.app import create_app  # noqa: PLC0415
+
+    bootstrap_db()
 
     print_banner()
     console.print(

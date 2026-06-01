@@ -1,0 +1,12 @@
+{
+  "mission_id": "00000000-0000-0000-0000-000000000001",
+  "mode": "cold_start",
+  "total_budget_usd": 20000,
+  "positions": [
+    {"ticker":"NRG","weight_pct":0.5,"notional_usd":10000,"rationale":"test","is_short":false},
+    {"ticker":"CEG","weight_pct":0.4,"notional_usd":8000,"rationale":"test","is_short":false}
+  ],
+  "correlation_map": [],
+  "cash_reserve_pct": 0.1,
+  "rationale": "test"
+}

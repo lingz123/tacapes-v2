@@ -1,0 +1,62 @@
+/*
+ * Design tokens for the tacapes dashboard.
+ *
+ * Light theme defaults; dark theme variants land in Sprint 2 under [data-theme="dark"].
+ * Values stored as HSL channels (h s l) so Tailwind can compose them with
+ * opacity modifiers via the `hsl(var(--token) / <alpha-value>)` pattern.
+ *
+ * Source of truth for these numbers: spec §6 of
+ * docs/superpowers/specs/2026-05-31-dashboard-redesign-design.md.
+ *
+ * Some shadcn primitives reference `--secondary`, `--destructive`, `--accent`,
+ * and `--popover` even when the design doesn't use them distinctly, so they
+ * alias to the neutral palette below. Diverge later if a redesign needs them.
+ */
+
+:root {
+  /* Surfaces and text. Neutral, monochrome, shadcn-default-ish. */
+  --background:         0 0% 99%;
+  --foreground:         0 0% 12%;
+  --card:               0 0% 100%;
+  --card-foreground:    0 0% 12%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 0 0% 12%;
+  --muted:              0 0% 96%;
+  --muted-foreground:   0 0% 45%;
+  --border:             0 0% 91%;
+  --input:              0 0% 91%;
+  --ring:               0 0% 70%;
+
+  /* Primary is monochrome dark. A research tool that doesn't pretend to be Spotify. */
+  --primary:            0 0% 12%;
+  --primary-foreground: 0 0% 98%;
+
+  /* Secondary and accent: subtle neutral surfaces for ghost buttons and select hover. */
+  --secondary:            0 0% 96%;
+  --secondary-foreground: 0 0% 12%;
+  --accent:               0 0% 94%;
+  --accent-foreground:    0 0% 12%;
+
+  /* Destructive maps to our semantic bad red so destructive buttons match P&L losses. */
+  --destructive:            0 72% 50%;
+  --destructive-foreground: 0 0% 98%;
+
+  /* Semantic accents. Used by P&L, conviction, alignment, TA rating, weak-spot icons. */
+  --good:               142 71% 38%;   /* emerald-ish */
+  --good-bg:            142 76% 96%;
+  --warn:               40  92% 42%;   /* amber-ish */
+  --warn-bg:            40  95% 96%;
+  --bad:                0   72% 50%;   /* rose-ish */
+  --bad-bg:             0   86% 96%;
+  --info:               217 91% 50%;   /* blue-ish */
+  --info-bg:            217 93% 96%;
+
+  /* Geometry. */
+  --radius-sm: 4px;
+  --radius:    8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow:    0 1px 3px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+}
