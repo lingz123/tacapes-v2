@@ -264,8 +264,12 @@ function DetailHeader({
 }
 
 function DoneBody({ mission }: { mission: MissionDetail }) {
-  // Surface the shortlist candidates and the subtheme-id → name map for the
-  // ShortlistTable, derived once per mission.
+  // Derive everything the zones need from the raw payload once. Conviction
+  // and primary-subtheme attribution both live on the per-ticker memo, not
+  // on the shortlist row — the shortlist row only carries `sub_theme_ids[]`
+  // (plural) and no conviction field. (Verified against the 3 backfilled
+  // missions in dogfood; the spec's "candidates carry conviction + sub_theme_id"
+  // turned out to be aspirational.)
   const candidates = ((mission.shortlist_json?.candidates ?? []) as ShortlistCandidate[]) || [];
   const subthemeNames: Record<string, string> = Object.fromEntries(
     mission.subtheme_summary.map((s) => [s.id, s.name]),
@@ -273,6 +277,13 @@ function DoneBody({ mission }: { mission: MissionDetail }) {
   const memos = (mission.memos_json ?? {}) as Record<string, Memo>;
   const taOutputs = (mission.ta_outputs_json ?? null) as Record<string, TaOutputs> | null;
   const portfolioOrder = mission.positions.map((p) => p.ticker);
+  const convictionByTicker: Record<string, number | null> = {};
+  const primarySubthemeByTicker: Record<string, string | null> = {};
+  for (const [ticker, memo] of Object.entries(memos)) {
+    convictionByTicker[ticker] =
+      typeof memo?.conviction === 'number' ? memo.conviction : null;
+    primarySubthemeByTicker[ticker] = memo?.subtheme_id ?? null;
+  }
 
   return (
     <div className="mt-8 space-y-10" data-testid="detail-done">
@@ -304,6 +315,8 @@ function DoneBody({ mission }: { mission: MissionDetail }) {
             candidates={candidates}
             chosen={mission.chosen_tickers}
             subthemeNames={subthemeNames}
+            convictionByTicker={convictionByTicker}
+            primarySubthemeByTicker={primarySubthemeByTicker}
           />
         </div>
       </Zone>

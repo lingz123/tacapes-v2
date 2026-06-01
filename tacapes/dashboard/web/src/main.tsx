@@ -23,7 +23,15 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          // Opt into the v7 behaviour now to silence the dev-time warning.
+          // We don't rely on legacy splat-relative resolution and the
+          // startTransition wrapper is a no-op for our routes today.
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <App />
         <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>

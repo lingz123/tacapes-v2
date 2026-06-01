@@ -270,7 +270,10 @@ new-mission Dialog.
 
 ## 9. Sprint 2 hopper (planned, not built)
 
-Authored at sprint close. Sketch only — re-plan before executing.
+Authored at sprint close (2026-05-31), expanded after the Phase 7 dogfood
+pass. Sketch only — re-plan before executing.
+
+### Originally deferred (carried over from spec §12)
 
 - **Per-ticker drill page** `/missions/:id/tickers/:ticker` with the full narrative on one screen
 - **Sticky ticker-nav chip row** for long missions
@@ -281,6 +284,39 @@ Authored at sprint close. Sketch only — re-plan before executing.
 - **Cancelling a running mission** from the UI
 - **Playwright happy-path E2E**
 - **`memo_writer` em-dash fallback string fix** (upstream code, separate slice)
+
+### Added by the Phase 7 dogfood pass
+
+See `docs/superpowers/notes/sprint-1-dogfood.md` for full context.
+
+- **Multi-sub-theme attribution in the SubthemeCard grid.** Tickers that
+  fit multiple sub-themes (e.g. GEV in mission `34bfb4f4` fits both
+  `natural-gas-ai-bridge` and `grid-equipment-electrification`) currently
+  appear under every sub-theme they fit. Either de-duplicate against the
+  memo's primary `subtheme_id`, or render the non-primary attributions
+  as ghost chips so the primary still reads as canonical.
+- **Soften the "momentum trap" label.** LUMN in `7d27e8c6` flags as a
+  trap (conviction 3 + diverged) but is +31.77%. The flag is useful as
+  "scrutinise this," not "this is broken." Rename to "scrutinise," or
+  drop the label entirely and rely on the ⚖ icon + tooltip.
+- **Sticky first-column on `PositionsTable`.** At 414px the table scrolls
+  horizontally and the ticker scrolls out of view, which makes the row
+  hard to track. A sticky ticker column closes the gap. (Listed as
+  "acceptable" in this plan's Phase 7 §3 — Sprint 2 polish.)
+- **Spec amendment.** `2026-05-31-dashboard-redesign-design.md §4.2` says
+  shortlist candidates carry `conviction` and `sub_theme_id` (singular).
+  The wire shape is actually `sub_theme_ids[]` and no conviction; the
+  fix is to compose lookups from the per-ticker memo. The implementation
+  already does this; the spec line is now wrong. One-line edit on the
+  next spec revision.
+- **Tooltip text for `<WeakSpotIcons>`.** Current text is correct but
+  reads dry. Worth a pass after a few real dogfood sessions to make the
+  hover copy actionable ("This conviction flag often hits ahead of a
+  re-rating" vs. the current "Conviction 3 + thesis diverged.").
+- **Polling-test `act()` warning.** `src/api/missions.test.tsx` triggers
+  a React `act()` warning when the fake-timer advance lands a state
+  update outside `act`. Wrap the `advanceTimersByTimeAsync` calls in
+  `act(async () => …)`. Pure cosmetic; the test is green.
 
 ---
 

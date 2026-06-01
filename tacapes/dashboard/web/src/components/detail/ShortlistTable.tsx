@@ -1,10 +1,21 @@
 /**
  * Shortlist table for Zone B (Why).
  *
- * Reads `shortlist_json.candidates` directly. The schema is the assessments
- * pipeline's per-ticker candidate row, which guarantees `ticker` and usually
- * carries `conviction` + `sub_theme_id` + `rationale`. Anything missing
- * renders as a dash so backfilled missions don't crash.
+ * Reads `shortlist_json.candidates` directly. The actual shape (verified on
+ * 2026-05-31 against the 3 backfilled missions) is:
+ *   - ticker, company_name, mission_id
+ *   - sub_theme_ids: string[]   (a candidate can belong to multiple themes)
+ *   - why_relevant: string
+ *
+ * Conviction is NOT on the candidate row; it lives on the per-ticker memo.
+ * We accept a `convictionByTicker` lookup so the consumer can compose the
+ * right value once and pass it in.
+ *
+ * Primary sub-theme attribution uses `memo.subtheme_id` (singular) when
+ * available — that's the sub-theme the portfolio constructor settled on
+ * for the ticker — and falls back to `candidate.sub_theme_ids[0]` for
+ * shortlist-only names. Names that appear in multiple sub-themes still
+ * show only their primary attribution to keep the column scannable.
  *
  * Rows are clickable and link the ticker cell to the matching memo anchor;
  * clicking anywhere on the row also navigates (handled with a hash change).
@@ -24,9 +35,14 @@ import { semanticClasses } from '@/lib/derive';
 
 interface ShortlistCandidate {
   ticker: string;
+  /** Plural in the wire shape; a candidate can fit multiple sub-themes. */
+  sub_theme_ids?: string[] | null;
+  /** Legacy singular form. Older snapshots may emit this; treat as fallback. */
   sub_theme_id?: string | null;
-  conviction?: number | string | null;
-  rationale?: string | null;
+  /** Pre-pipeline rationale ("why we shortlisted"). Not currently rendered;
+   *  reserved for a tooltip / drill page. */
+  why_relevant?: string | null;
+  company_name?: string | null;
 }
 
 interface ShortlistTableProps {
@@ -36,9 +52,32 @@ interface ShortlistTableProps {
   chosen: string[];
   /** Map from sub-theme id to display name. Falls back to the id when absent. */
   subthemeNames?: Record<string, string>;
+  /** Ticker → memo conviction. Composed by the consumer so the table
+   *  doesn't have to reach into `memos_json` itself. */
+  convictionByTicker?: Record<string, number | null>;
+  /** Ticker → memo's primary sub-theme attribution. Falls back to
+   *  `candidate.sub_theme_ids[0]` per row when absent. */
+  primarySubthemeByTicker?: Record<string, string | null>;
 }
 
-export function ShortlistTable({ candidates, chosen, subthemeNames }: ShortlistTableProps) {
+function primarySubtheme(
+  c: ShortlistCandidate,
+  primaryByTicker: ShortlistTableProps['primarySubthemeByTicker'],
+): string | null {
+  const primary = primaryByTicker?.[c.ticker];
+  if (primary) return primary;
+  if (c.sub_theme_id) return c.sub_theme_id;
+  const ids = c.sub_theme_ids ?? [];
+  return ids[0] ?? null;
+}
+
+export function ShortlistTable({
+  candidates,
+  chosen,
+  subthemeNames,
+  convictionByTicker,
+  primarySubthemeByTicker,
+}: ShortlistTableProps) {
   if (candidates.length === 0) {
     return (
       <p className="text-sm text-muted-foreground italic">No shortlist recorded.</p>
@@ -73,8 +112,9 @@ export function ShortlistTable({ candidates, chosen, subthemeNames }: ShortlistT
         <TableBody>
           {candidates.map((c) => {
             const isChosen = chosenSet.has(c.ticker);
-            const subId = c.sub_theme_id ?? '';
-            const subLabel = subthemeNames?.[subId] ?? subId ?? '—';
+            const subId = primarySubtheme(c, primarySubthemeByTicker) ?? '';
+            const subLabel = subthemeNames?.[subId] ?? subId;
+            const conv = convictionByTicker?.[c.ticker] ?? null;
             return (
               <TableRow
                 key={c.ticker}
@@ -97,7 +137,7 @@ export function ShortlistTable({ candidates, chosen, subthemeNames }: ShortlistT
                   {subLabel || <span className="italic">—</span>}
                 </TableCell>
                 <TableCell className="py-3">
-                  <ConvictionBadge value={c.conviction ?? null} />
+                  <ConvictionBadge value={conv} />
                 </TableCell>
                 <TableCell className="py-3 text-right">
                   <Badge

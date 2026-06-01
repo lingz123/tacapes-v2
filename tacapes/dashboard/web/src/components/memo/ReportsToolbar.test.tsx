@@ -22,7 +22,14 @@ function withRouter(
   ui: React.ReactNode,
   { initial = '/?' }: { initial?: string } = {},
 ) {
-  return render(<MemoryRouter initialEntries={[initial]}>{ui}</MemoryRouter>);
+  return render(
+    <MemoryRouter
+      initialEntries={[initial]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      {ui}
+    </MemoryRouter>,
+  );
 }
 
 describe('<ReportsToolbar>', () => {
