@@ -443,3 +443,39 @@ def test_prices_refresh_invalidates_cache(client, session):
     assert r.status_code == 204
     with session_scope() as s:
         assert s.get(PriceQuote, "NRG") is None
+
+
+def test_mission_detail_survives_malformed_jsonb_shapes(client, session):
+    """Partial-state missions surface JSONB columns shaped like lists (or
+    other non-dicts) where the schema expects a dict. The API used to 500
+    via Pydantic validation; it now coerces non-dict values to None and
+    keeps serving the mission. Surfaced by mission 2c2adfae on 2026-06-01,
+    which had `ta_outputs_json = []` and `memos_json = NULL`.
+    """
+    row = _insert_done_mission(
+        session,
+        statement="Mission with malformed stage outputs " * 2,
+        positions=[],
+        decomposition_json={"sub_themes": [{"id": "s1", "name": "Theme"}]},
+        # The two shapes worth pinning: empty list and an oddly-shaped value.
+        ta_outputs_json=[],            # what the bad row in production had
+        memos_json=["unexpected"],     # broader resilience
+        # Dict-shaped data still flows through normally.
+        shortlist_json={"candidates": [{"ticker": "AAA"}]},
+        portfolio_json={"positions": [{"ticker": "AAA"}], "cash_reserve_pct": 0.05},
+    )
+    session.commit()
+    with patch.object(prices, "get_current_prices", return_value={}):
+        r = client.get(f"/api/missions/{row.id}")
+    assert r.status_code == 200
+    body = r.json()
+    # Non-dict JSONB fields land as null on the wire.
+    assert body["ta_outputs_json"] is None
+    assert body["memos_json"] is None
+    # Dict-shaped fields pass through unchanged.
+    assert body["decomposition_json"]["sub_themes"][0]["id"] == "s1"
+    assert body["shortlist_json"]["candidates"][0]["ticker"] == "AAA"
+    # Derived fields don't crash on the bad shapes either.
+    assert body["weak_spots"] == []
+    assert isinstance(body["subtheme_summary"], list)
+    assert body["chosen_tickers"] == ["AAA"]

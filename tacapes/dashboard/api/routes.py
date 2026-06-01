@@ -49,6 +49,21 @@ def _to_float(value: Decimal | float | int | None) -> float | None:
     return float(value) if value is not None else None
 
 
+def _dict_or_none(value: Any) -> dict[str, Any] | None:
+    """Coerce a JSONB column to dict-or-None for the wire schema.
+
+    The `*_json` columns are typed `dict[str, Any] | None` on the response
+    model, but the underlying JSONB can hold any JSON shape. Partial-state
+    missions in particular have surfaced `ta_outputs_json = []` (empty list)
+    where the pipeline crashed between writing the stage container and
+    populating it. Returning None for any non-dict value keeps the API
+    available; the React side already renders "no X recorded" gracefully
+    for null. We deliberately don't rewrite the DB row — keep the bad
+    shape on disk so the upstream bug stays diagnosable.
+    """
+    return value if isinstance(value, dict) else None
+
+
 def _per_position_pnl(
     positions: list[Any], current_prices: dict[str, Decimal]
 ) -> list[PositionPnl]:
@@ -93,8 +108,9 @@ def _stat_strip(
         pnl_pct = float((current - invested) / invested) * 100
         pnl_usd = float(current - invested)
     cash_reserve_pct = 0.0
-    if mission.portfolio_json:
-        cash_reserve_pct = float(mission.portfolio_json.get("cash_reserve_pct") or 0.0)
+    portfolio = _dict_or_none(mission.portfolio_json) or {}
+    if portfolio:
+        cash_reserve_pct = float(portfolio.get("cash_reserve_pct") or 0.0)
     return StatStrip(
         invested=float(invested),
         current_value=float(current),
@@ -113,8 +129,8 @@ def _subtheme_summary(mission: Mission, chosen: set[str]) -> list[SubthemeSummar
     spec called for: per-subtheme name + hypothesis + candidate count +
     chosen ratio + key findings preview.
     """
-    decomp = mission.decomposition_json or {}
-    assessments = mission.assessments_json or {}
+    decomp = _dict_or_none(mission.decomposition_json) or {}
+    assessments = _dict_or_none(mission.assessments_json) or {}
     out: list[SubthemeSummary] = []
     for st in decomp.get("sub_themes") or []:
         sid = st.get("id") or st.get("name") or "(unknown)"
@@ -146,7 +162,7 @@ def _weak_spots(mission: Mission, positions: list[PositionPnl]) -> list[WeakSpot
     - losing: current pnl_pct < 0 for this ticker's position
     """
     out: list[WeakSpot] = []
-    memos = mission.memos_json or {}
+    memos = _dict_or_none(mission.memos_json) or {}
     pnl_by_ticker = {p.ticker: p.pnl_pct for p in positions}
     for ticker, memo in memos.items():
         if not isinstance(memo, dict):
@@ -169,12 +185,13 @@ def _weak_spots(mission: Mission, positions: list[PositionPnl]) -> list[WeakSpot
 
 
 def _chosen_tickers(mission: Mission) -> set[str]:
-    if not mission.portfolio_json:
+    portfolio = _dict_or_none(mission.portfolio_json)
+    if not portfolio:
         return set()
     return {
         p["ticker"]
-        for p in (mission.portfolio_json.get("positions") or [])
-        if "ticker" in p
+        for p in (portfolio.get("positions") or [])
+        if isinstance(p, dict) and "ticker" in p
     }
 
 
@@ -298,12 +315,12 @@ def register(app: FastAPI) -> None:
                 completed_at=m.completed_at,
                 error_message=m.error_message,
                 cost_usd=_to_float(m.cost_usd),
-                decomposition_json=m.decomposition_json,
-                assessments_json=m.assessments_json,
-                shortlist_json=m.shortlist_json,
-                ta_outputs_json=m.ta_outputs_json,
-                memos_json=m.memos_json,
-                portfolio_json=m.portfolio_json,
+                decomposition_json=_dict_or_none(m.decomposition_json),
+                assessments_json=_dict_or_none(m.assessments_json),
+                shortlist_json=_dict_or_none(m.shortlist_json),
+                ta_outputs_json=_dict_or_none(m.ta_outputs_json),
+                memos_json=_dict_or_none(m.memos_json),
+                portfolio_json=_dict_or_none(m.portfolio_json),
                 positions=positions,
                 stat_strip=_stat_strip(m, positions),
                 subtheme_summary=_subtheme_summary(m, chosen),
