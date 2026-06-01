@@ -7,6 +7,10 @@
  *
  * Source of truth for these numbers: spec §6 of
  * docs/superpowers/specs/2026-05-31-dashboard-redesign-design.md.
+ *
+ * Some shadcn primitives reference `--secondary`, `--destructive`, `--accent`,
+ * and `--popover` even when the design doesn't use them distinctly, so they
+ * alias to the neutral palette below. Diverge later if a redesign needs them.
  */
 
 :root {
@@ -15,15 +19,27 @@
   --foreground:         0 0% 12%;
   --card:               0 0% 100%;
   --card-foreground:    0 0% 12%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 0 0% 12%;
   --muted:              0 0% 96%;
   --muted-foreground:   0 0% 45%;
   --border:             0 0% 91%;
   --input:              0 0% 91%;
   --ring:               0 0% 70%;
 
-  /* Primary is monochrome dark — a research tool that doesn't pretend to be Spotify. */
+  /* Primary is monochrome dark. A research tool that doesn't pretend to be Spotify. */
   --primary:            0 0% 12%;
   --primary-foreground: 0 0% 98%;
+
+  /* Secondary and accent: subtle neutral surfaces for ghost buttons and select hover. */
+  --secondary:            0 0% 96%;
+  --secondary-foreground: 0 0% 12%;
+  --accent:               0 0% 94%;
+  --accent-foreground:    0 0% 12%;
+
+  /* Destructive maps to our semantic bad red so destructive buttons match P&L losses. */
+  --destructive:            0 72% 50%;
+  --destructive-foreground: 0 0% 98%;
 
   /* Semantic accents. Used by P&L, conviction, alignment, TA rating, weak-spot icons. */
   --good:               142 71% 38%;   /* emerald-ish */

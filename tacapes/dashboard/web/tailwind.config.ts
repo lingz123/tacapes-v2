@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 // Tokens are defined as CSS variables in src/styles/tokens.css so they can
 // be overridden at runtime (dark mode toggle in Sprint 2). Tailwind reads
@@ -27,9 +28,25 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
         },
         // Semantic accent tokens used by ConvictionBadge, AlignmentBadge,
         // RatingBadge, PnlPill, weak-spot icons.
@@ -63,7 +80,23 @@ export default {
         '2xl': ['28px', '1.2'],
         '3xl': ['36px', '1.15'],
       },
+      keyframes: {
+        // Shadcn accordion expects these so the Radix data-state transitions
+        // animate without us hand-rolling CSS.
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.18s ease-out',
+        'accordion-up': 'accordion-up 0.18s ease-out',
+      },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;
