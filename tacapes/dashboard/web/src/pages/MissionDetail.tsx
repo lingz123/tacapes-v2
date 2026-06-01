@@ -21,6 +21,14 @@ import { EmptyState } from '@/components/shell/EmptyState';
 import { StatStrip, type StatTileProps } from '@/components/stat/StatStrip';
 import { PnlPill } from '@/components/stat/PnlPill';
 import { PositionsTable } from '@/components/detail/PositionsTable';
+import { SubthemeCard } from '@/components/detail/SubthemeCard';
+import {
+  ShortlistTable,
+  type ShortlistCandidate,
+} from '@/components/detail/ShortlistTable';
+import { MemoList } from '@/components/memo/MemoList';
+import type { Memo } from '@/components/memo/MemoCard';
+import type { TaOutputs } from '@/components/memo/TaDebate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -256,6 +264,16 @@ function DetailHeader({
 }
 
 function DoneBody({ mission }: { mission: MissionDetail }) {
+  // Surface the shortlist candidates and the subtheme-id → name map for the
+  // ShortlistTable, derived once per mission.
+  const candidates = ((mission.shortlist_json?.candidates ?? []) as ShortlistCandidate[]) || [];
+  const subthemeNames: Record<string, string> = Object.fromEntries(
+    mission.subtheme_summary.map((s) => [s.id, s.name]),
+  );
+  const memos = (mission.memos_json ?? {}) as Record<string, Memo>;
+  const taOutputs = (mission.ta_outputs_json ?? null) as Record<string, TaOutputs> | null;
+  const portfolioOrder = mission.positions.map((p) => p.ticker);
+
   return (
     <div className="mt-8 space-y-10" data-testid="detail-done">
       <Zone title="Outcome" subtitle="What's working, what's not.">
@@ -266,24 +284,40 @@ function DoneBody({ mission }: { mission: MissionDetail }) {
         title="Why"
         subtitle="The thesis tree and which candidates made the cut."
       >
-        <p
-          className="text-sm text-muted-foreground italic"
-          data-testid="zone-why-placeholder"
-        >
-          Sub-themes and shortlist land in Phase 5 day 2.
-        </p>
+        <div className="space-y-6">
+          {mission.subtheme_summary.length > 0 ? (
+            <div
+              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+              data-testid="subtheme-grid"
+            >
+              {mission.subtheme_summary.map((st) => (
+                <SubthemeCard key={st.id} subtheme={st} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">
+              No sub-themes recorded.
+            </p>
+          )}
+
+          <ShortlistTable
+            candidates={candidates}
+            chosen={mission.chosen_tickers}
+            subthemeNames={subthemeNames}
+          />
+        </div>
       </Zone>
 
       <Zone
         title="Audit"
         subtitle="Per-ticker reports with weak-spot flags."
       >
-        <p
-          className="text-sm text-muted-foreground italic"
-          data-testid="zone-audit-placeholder"
-        >
-          Memo accordion + TA debate land in Phase 5 day 2.
-        </p>
+        <MemoList
+          memos={memos}
+          taOutputs={taOutputs}
+          weakSpots={mission.weak_spots}
+          portfolioOrder={portfolioOrder}
+        />
       </Zone>
     </div>
   );
