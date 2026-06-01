@@ -22,6 +22,7 @@ import type {
   CreateMissionResponse,
   MissionDetail,
   MissionListResponse,
+  MissionStatusResponse,
 } from '@/types/api';
 
 class ApiError extends Error {
@@ -78,6 +79,7 @@ export const missionKeys = {
   all: ['missions'] as const,
   list: () => [...missionKeys.all, 'list'] as const,
   detail: (id: string) => [...missionKeys.all, 'detail', id] as const,
+  status: (id: string) => [...missionKeys.all, 'status', id] as const,
 };
 
 /** Fetches the mission list + aggregate stats for the index page. */
@@ -94,6 +96,37 @@ export function useMissionDetail(id: string | undefined) {
     queryKey: id ? missionKeys.detail(id) : ['missions', 'detail', '__missing__'],
     queryFn: () => getJson<MissionDetail>(`/api/missions/${id!}`),
     enabled: Boolean(id),
+  });
+}
+
+/**
+ * Polls `/api/missions/:id/status` every 3 seconds while the mission is in
+ * a non-terminal state (`queued` or `running`), then settles into a single
+ * fetch once `done` or `failed` arrive. When the status flips to `done`,
+ * the detail-page query is invalidated so the heavy payload refreshes
+ * exactly once instead of being polled in lockstep.
+ *
+ * Returns a normal `useQuery` result so callers can branch on `data.status`
+ * without re-implementing the polling machinery.
+ */
+export function useMissionStatus(id: string | undefined) {
+  const qc = useQueryClient();
+  return useQuery<MissionStatusResponse>({
+    queryKey: id ? missionKeys.status(id) : ['missions', 'status', '__missing__'],
+    queryFn: async () => {
+      const data = await getJson<MissionStatusResponse>(`/api/missions/${id!}/status`);
+      // Pull the full record once the pipeline lands. Re-fetching after a
+      // failure also lets the detail view show `error_message`.
+      if (id && (data.status === 'done' || data.status === 'failed')) {
+        qc.invalidateQueries({ queryKey: missionKeys.detail(id) });
+      }
+      return data;
+    },
+    enabled: Boolean(id),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === 'queued' || status === 'running' ? 3000 : false;
+    },
   });
 }
 
